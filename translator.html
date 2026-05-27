@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>产品信息翻译器</title>
+<style>
+  :root { --bg:#f5f3ef; --card:#fff; --text:#2c2416; --muted:#8b7355; --accent:#8b6f5e; --border:#e0d6c8; --input-bg:#fdfaf6; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  .header { background:var(--card); border-bottom:1px solid var(--border); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; }
+  .header h1 { font-size:17px; font-weight:600; }
+  .header .badge { font-size:11px; color:var(--muted); background:#f0e8db; padding:4px 10px; border-radius:12px; }
+  .container { display:grid; grid-template-columns:1fr 1fr; gap:20px; padding:20px 28px; max-width:1600px; margin:0 auto; height:calc(100vh - 60px); }
+  .panel { background:var(--card); border-radius:10px; border:1px solid var(--border); display:flex; flex-direction:column; overflow:hidden; }
+  .panel-header { padding:12px 18px; border-bottom:1px solid var(--border); font-weight:600; font-size:13px; }
+  .panel-body { flex:1; overflow-y:auto; padding:16px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:.5px; }
+  .field textarea { width:100%; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:13px; font-family:inherit; background:var(--input-bg); resize:vertical; min-height:100px; }
+  .field textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(139,111,94,.1); }
+  .btn-row { display:flex; gap:8px; margin-top:16px; }
+  .btn { padding:10px 20px; border-radius:8px; border:1px solid var(--border); background:var(--card); font-size:13px; font-weight:500; cursor:pointer; transition:all .15s; }
+  .btn:hover { border-color:var(--accent); }
+  .btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn.primary:hover { opacity:.9; }
+
+  .output-tabs { display:flex; border-bottom:1px solid var(--border); }
+  .output-tab { padding:8px 16px; font-size:12px; font-weight:500; cursor:pointer; border:none; background:none; color:var(--muted); border-bottom:2px solid transparent; }
+  .output-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .out-panel { display:none; flex:1; overflow-y:auto; padding:16px; }
+  .out-panel.active { display:block; }
+  .out-block { margin-bottom:16px; padding:12px; background:#fdfaf6; border-radius:8px; border:1px solid var(--border); }
+  .out-block h3 { font-size:12px; color:var(--accent); margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px; }
+  .out-block pre { font-size:12px; line-height:1.6; white-space:pre-wrap; word-break:break-all; margin:0; color:var(--text); }
+  .copy-btn { font-size:11px; padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--card); cursor:pointer; float:right; margin-top:-4px; }
+  .copy-btn:hover { border-color:var(--accent); }
+
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#2c2416; color:#fff; padding:10px 24px; border-radius:8px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; z-index:100; }
+  .toast.show { opacity:1; }
+
+  @media (max-width:900px) { .container { grid-template-columns:1fr; height:auto; } .panel { max-height:500px; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📦 产品信息翻译器</h1>
+  <span class="badge">C列+D列 → E/F/G/H 一键生成</span>
+</div>
+
+<div class="container">
+  <!-- LEFT: Input -->
+  <div class="panel">
+    <div class="panel-header">📝 粘贴原始数据</div>
+    <div class="panel-body">
+      <div class="field">
+        <label>C列 — 产品属性中文（颜色 / 跟高 / 尺码）</label>
+        <textarea id="cInput" placeholder="紫色，粉色，杏色，黑色
+跟高2cm
+35-39码"></textarea>
+      </div>
+      <div class="field">
+        <label>D列 — 产品信息中文（值在前，标签在后）</label>
+        <textarea id="dInput" placeholder="粗跟
+鞋跟款式
+橡胶
+鞋底材质
+方头
+鞋头款式
+蝴蝶结
+流行元素
+休闲风
+风格
+包头凉鞋
+款式
+一字式扣带
+闭合方式"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="generate()">⚡ 生成</button>
+        <button class="btn" onclick="loadExample()">加载示例</button>
+        <button class="btn" onclick="clearAll()">清空</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Output -->
+  <div class="panel">
+    <div class="output-tabs">
+      <button class="output-tab active" onclick="switchTab('e')">E 属性英文</button>
+      <button class="output-tab" onclick="switchTab('f')">F 规格英文</button>
+      <button class="output-tab" onclick="switchTab('g')">G 跟高</button>
+      <button class="output-tab" onclick="switchTab('h')">H 全排列</button>
+      <button class="output-tab" onclick="switchTab('all')">全部</button>
+    </div>
+    <div id="tab-e" class="out-panel active"><div class="out-block"><h3>E 列 — 产品属性英文 <button class="copy-btn" onclick="copyText('e')">复制</button></h3><pre id="outE"></pre></div></div>
+    <div id="tab-f" class="out-panel"><div class="out-block"><h3>F 列 — 产品规格英文 <button class="copy-btn" onclick="copyText('f')">复制</button></h3><pre id="outF"></pre></div></div>
+    <div id="tab-g" class="out-panel"><div class="out-block"><h3>G 列 — 跟高信息 <button class="copy-btn" onclick="copyText('g')">复制</button></h3><pre id="outG"></pre></div></div>
+    <div id="tab-h" class="out-panel"><div class="out-block"><h3>H 列 — 属性全排列 <button class="copy-btn" onclick="copyText('h')">复制</button></h3><pre id="outH"></pre></div></div>
+    <div id="tab-all" class="out-panel">
+      <div class="out-block"><h3>E 列 — 产品属性英文 <button class="copy-btn" onclick="copyText('e')">复制</button></h3><pre id="outE2"></pre></div>
+      <div class="out-block"><h3>F 列 — 产品规格英文 <button class="copy-btn" onclick="copyText('f')">复制</button></h3><pre id="outF2"></pre></div>
+      <div class="out-block"><h3>G 列 — 跟高信息 <button class="copy-btn" onclick="copyText('g')">复制</button></h3><pre id="outG2"></pre></div>
+      <div class="out-block"><h3>H 列 — 属性全排列 <button class="copy-btn" onclick="copyText('h')">复制</button></h3><pre id="outH2"></pre></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// Translation dictionaries
+// ═══════════════════════════════════════
+const LABEL_MAP = {
+  "鞋跟款式":"Heel Style","跟底款式":"Heel Style","鞋底材质":"Outsole Material",
+  "鞋头款式":"Toe Style","流行元素":"Design Element","风格":"Style","款式":"Shoe Type",
+  "闭合方式":"Closure Type","材质工艺":"Material Finish","鞋面材质":"Upper Material",
+  "帮面材质":"Upper Material","内里材质":"Lining Material","适用季节":"Season",
+  "开口深度":"Opening Depth","图案":"Pattern","鞋垫材质":"Insole Material",
+  "适合场合":"Occasion","后帮":"Heel Counter",
+};
+
+const VALUE_MAP = {
+  "粗跟":"Chunky Heel","细跟":"Stiletto Heel","猫跟":"Kitten Heel","坡跟":"Wedge Heel",
+  "酒杯跟":"Flared Heel","异型跟":"Sculptural Heel","粗高跟":"Chunky Heel",
+  "橡胶":"Rubber","TPR":"TPR","EVA":"EVA","PU":"PU","绒面":"Suede","磨砂":"Matte Finish",
+  "织布":"Fabric","网面":"Mesh","缎面":"Satin","牛仔":"Denim","帆布":"Canvas",
+  "丝绸":"Silk","绸缎":"Satin","漆皮":"Patent Leather","超细纤维":"Microfiber",
+  "植鞣":"Vegetable Tanned Leather",
+  "修面皮":"Leather","二层猪皮":"Leather","头层牛皮":"Leather","头层猪皮":"Leather",
+  "羊皮":"Leather","牛皮":"Leather","猪皮":"Leather","牛二皮":"Leather",
+  "牛二层皮覆膜":"Leather",
+  "方头":"Square Toe","尖头":"Pointed Toe","圆头":"Round Toe","包头":"Closed Toe",
+  "蝴蝶结":"Bow","镂空":"Cutout","脚环绑带":"Ankle Strap","丝带":"Ribbon",
+  "松紧带":"Elastic Band","搭扣":"Buckle","水钻":"Rhinestone","编织":"Woven",
+  "休闲风":"Casual","复古风":"Vintage","学院风":"Preppy","通勤风":"Commute",
+  "法式":"French Style","韩版":"Korean Style","韩式":"Korean Style",
+  "欧美风":"European/American","欧美":"European/American","涂鸦风":"Graffiti Style","流行":"Trendy",
+  "包头凉鞋":"Closed-Toe Sandals","单鞋":"Single Shoes","凉鞋":"Sandals",
+  "玛丽珍":"Mary Jane","穆勒鞋":"Mules","拖鞋":"Slippers","后空鞋":"Slingback",
+  "乐福鞋":"Loafers","芭蕾鞋":"Ballet Flats","一字拖鞋":"One-Strap Slippers",
+  "浅口":"Low-Cut","深口":"Deep Cut",
+  "春秋":"Spring/Autumn","春夏":"Spring/Summer","夏季":"Summer","冬季":"Winter","四季":"All Seasons",
+  "一字式扣带":"Single Strap Buckle","一脚蹬":"Slip-On",
+  "纯色":"Solid Color","日常":"Daily","后空":"Open Back",
+};
+
+const COLOR_MAP = {
+  "紫色":"Purple","粉色":"Pink","杏色":"Apricot","黑色":"Black","卡其":"Khaki",
+  "金色":"Gold","绿色":"Green","酒红色":"Burgundy","米白色":"Cream","裸色":"Nude",
+  "香芋紫":"Lavender","棕色":"Brown","银色":"Silver","灰色":"Grey","牛仔蓝":"Denim Blue",
+  "深蓝色":"Navy","香槟色":"Champagne","白色":"White","红色":"Red",
+};
+
+const SIZE_MAP = {
+  32:"UK 1 / EU 32 / 205 mm",33:"UK 1.5 / EU 33 / 215 mm",
+  34:"UK 2 / EU 34 / 220 mm",35:"UK 2.5 / EU 35 / 225 mm",
+  36:"UK 3.5 / EU 36 / 230 mm",37:"UK 4 / EU 37 / 235 mm",
+  38:"UK 5 / EU 38 / 240 mm",39:"UK 6 / EU 39 / 245 mm",
+  40:"UK 6.5 / EU 40 / 250 mm",41:"UK 7.5 / EU 41 / 255 mm",
+  42:"UK 8.5 / EU 42 / 260 mm",
+};
+
+const EU_ONLY = {32:"32",33:"33",34:"34",35:"35",36:"36",37:"37",38:"38",39:"39",40:"40",41:"41",42:"42"};
+
+// ═══════════════════════════════════════
+// Core logic
+// ═══════════════════════════════════════
+function translateValue(v) {
+  return v.replace(/，/g, ',').split(',').map(p => VALUE_MAP[p.trim()] || p.trim()).join(', ');
+}
+
+function inchStr(cm) {
+  const n = cm === Math.floor(cm) ? Math.floor(cm) : cm;
+  return `${n} cm / ${(cm/2.54).toFixed(2)}"`;
+}
+
+function classifyHeel(cm, shape) {
+  if (shape === "Chunky Heel") {
+    if (cm <= 3) return "Low Heel";
+    if (cm <= 7) return "Mid Heel";
+    return "High Heel";
+  }
+  if (shape === "Stiletto Heel") {
+    if (cm <= 3) return "Low Heel";
+    if (cm <= 5) return "Mid Heel";
+    return "High Heel";
+  }
+  if (shape === "Kitten Heel") {
+    return cm <= 4 ? "Low Heel" : "Mid Heel";
+  }
+  if (["Flared Heel","Wedge Heel","Sculptural Heel"].includes(shape)) {
+    if (cm <= 3) return "Low Heel";
+    if (cm <= 5) return "Mid Heel";
+    return "High Heel";
+  }
+  if (cm <= 1) return "Flat";
+  if (cm <= 3) return "Low Heel";
+  if (cm <= 7) return "Mid Heel";
+  return "High Heel";
+}
+
+function parseC(text) {
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l);
+  let colors = '', heel = '', size = '';
+  for (const l of lines) {
+    if (/^[\u4e00-\u9fff，、]+$/.test(l) && !/[跟厘cm码]/.test(l)) colors = l;
+    else if (/[跟cm厘]/.test(l)) heel = l;
+    else if (/码|\d+-\d+/.test(l)) size = l;
+  }
+  return { colors, heel, size };
+}
+
+function parseHeel(heelRaw) {
+  const res = [];
+  const parts = heelRaw.replace(/；/g, ';').split(';');
+  for (let p of parts) {
+    p = p.trim().replace(/跟高/g,'').replace(/厘米/g,'cm').replace(/，/g,',');
+    const m = p.match(/(\d+\.?\d*)\s*cm/);
+    if (!m) continue;
+    const cm = parseFloat(m[1]);
+    let shape = null;
+    for (const s of ['粗跟','细跟','猫跟','坡跟','酒杯跟']) {
+      if (p.includes(s)) { shape = VALUE_MAP[s] || s; break; }
+    }
+    res.push({ cm, shape });
+  }
+  return res;
+}
+
+function parseSize(sizeRaw) {
+  const s = sizeRaw.replace(/码/g,'').trim();
+  const parts = s.split('-');
+  if (parts.length === 2) {
+    const a = parseInt(parts[0]), b = parseInt(parts[1]);
+    if (!isNaN(a) && !isNaN(b)) {
+      const arr = [];
+      for (let i = a; i <= b; i++) arr.push(i);
+      return arr;
+    }
+  }
+  return [];
+}
+
+function parseD(text) {
+  if (!text) return [];
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(l => l);
+  const pairs = [];
+  for (let i = 0; i < lines.length - 1; i++) {
+    if (LABEL_MAP[lines[i+1]]) {
+      pairs.push({ val: lines[i], lbl: lines[i+1] });
+      i++;
+    }
+  }
+  return pairs;
+}
+
+function generate() {
+  const cText = document.getElementById('cInput').value;
+  const dText = document.getElementById('dInput').value;
+
+  const { colors:colorsCN, heel:heelRaw, size:sizeRaw } = parseC(cText);
+  const colorsEN = colorsCN.split(/[，,]/).map(c => COLOR_MAP[c.trim()] || c.trim()).filter(c => c);
+  const heels = parseHeel(heelRaw);
+  const srange = parseSize(sizeRaw);
+  const sizes = srange.map(s => SIZE_MAP[s]).filter(s => s);
+  const sizesEU = srange.map(s => EU_ONLY[s]).filter(s => s);
+
+  if (heels.length === 0) heels.push({ cm: 0, shape: null });
+  heels.sort((a, b) => a.cm - b.cm);
+
+  const heelStyles = heels.map(h => classifyHeel(h.cm, h.shape));
+  const hhStr = heels.map(h => inchStr(h.cm)).join('; ');
+
+  // E
+  const outE = `Style: ${heelStyles.join('; ')}\nColor: ${colorsEN.join(', ')}\nSize:\n${sizes.join('\n')}`;
+
+  // F
+  const dPairs = parseD(dText);
+  const linesF = [`Heel Height: ${hhStr}`];
+  for (const {val, lbl} of dPairs) {
+    linesF.push(`${LABEL_MAP[lbl]}: ${translateValue(val)}`);
+  }
+  const outF = linesF.join('\n');
+
+  // G
+  const outG = heels.map(h => inchStr(h.cm)).join('；');
+
+  // H
+  const combos = [];
+  for (const color of colorsEN) {
+    for (const style of heelStyles) {
+      for (const eu of sizesEU) {
+        combos.push(`${color}——${style}——${eu}`);
+      }
+    }
+  }
+  const outH = combos.join('\n');
+
+  // Write outputs
+  ['outE','outE2'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = outE; });
+  ['outF','outF2'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = outF; });
+  ['outG','outG2'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = outG; });
+  ['outH','outH2'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = outH; });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.out-panel').forEach(p => p.classList.remove('active'));
+  const tabs = ['e','f','g','h','all'];
+  const idx = tabs.indexOf(tab);
+  document.querySelectorAll('.output-tab')[idx].classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+function copyText(col) {
+  const el = document.getElementById('out' + col.toUpperCase());
+  const text = el ? el.textContent : document.getElementById('out' + col.toUpperCase() + '2').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast(`✅ ${col.toUpperCase()} 列已复制`));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function clearAll() {
+  document.getElementById('cInput').value = '';
+  document.getElementById('dInput').value = '';
+  ['E','E2','F','F2','G','G2','H','H2'].forEach(id => {
+    const el = document.getElementById('out'+id);
+    if (el) el.textContent = '';
+  });
+}
+
+function loadExample() {
+  document.getElementById('cInput').value = '紫色，粉色，杏色，黑色\n跟高2cm\n35-39码';
+  document.getElementById('dInput').value = '粗跟\n鞋跟款式\n橡胶\n鞋底材质\n方头\n鞋头款式\n蝴蝶结\n流行元素\n休闲风\n风格\n包头凉鞋\n款式\n一字式扣带\n闭合方式';
+  generate();
+  showToast('已加载示例');
+}
+
+// Initial
+loadExample();
+</script>
+</body>
+</html>
