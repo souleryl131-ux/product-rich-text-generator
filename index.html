@@ -14,6 +14,7 @@
     --border: #e0d6c8;
     --input-bg: #fdfaf6;
     --tag-bg: #f0e8db;
+    --green: #27ae60;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -70,6 +71,22 @@
     padding: 20px;
   }
 
+  /* Section divider */
+  .section-divider {
+    border: none;
+    border-top: 2px dashed var(--border);
+    margin: 24px 0 20px;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
   /* Form */
   .field { margin-bottom: 18px; }
   .field label {
@@ -101,13 +118,6 @@
   .field textarea { min-height: 80px; }
   .field .hint { font-size: 11px; color: #aaa; margin-top: 3px; }
 
-  /* Image URLs section */
-  .img-urls { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
-  .img-urls h3 { font-size: 13px; color: var(--muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .img-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
-  .img-row .img-label { font-size: 11px; color: var(--muted); width: 50px; flex-shrink: 0; text-align: right; }
-  .img-row input { flex: 1; }
-
   /* Buttons */
   .btn-row { display: flex; gap: 10px; margin-top: 20px; }
   .btn {
@@ -127,7 +137,7 @@
   .btn.danger { color: #c0392b; border-color: #e8c8c4; }
 
   /* Output */
-  .output-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+  .output-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); overflow-x: auto; }
   .output-tab {
     padding: 10px 18px;
     font-size: 13px;
@@ -138,6 +148,8 @@
     color: var(--muted);
     border-bottom: 2px solid transparent;
     transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .output-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
   .output-content { display: none; padding: 0; flex: 1; overflow: hidden; }
@@ -172,7 +184,7 @@
     background: #fdfaf6;
   }
   .copy-bar .status { font-size: 12px; color: var(--muted); }
-  .copy-bar .copied { color: #27ae60; font-weight: 600; }
+  .copy-bar .copied { color: var(--green); font-weight: 600; }
 
   /* Toast */
   .toast {
@@ -203,7 +215,7 @@
 
 <div class="header">
   <h1>📦 产品富文本生成器</h1>
-  <span class="badge">7 区块模板 · zeveau</span>
+  <span class="badge">7 区块 + 变体生成 · zeveau</span>
 </div>
 
 <div class="container">
@@ -212,6 +224,8 @@
   <div class="panel">
     <div class="panel-header">📝 填入产品内容</div>
     <div class="panel-body">
+
+      <!-- === 富文本区块 === -->
       <div class="field">
         <label>产品英文描述</label>
         <textarea id="desc" placeholder="These minimalist flat shoes combine a sleek square-toe silhouette..."></textarea>
@@ -239,10 +253,30 @@ Shoe Style: Loafers"></textarea>
         <span class="hint">→ Key Specifications 区块 · 每条自动包裹 &lt;li&gt;</span>
       </div>
 
+      <hr class="section-divider">
 
+      <!-- === 变体生成器 === -->
+      <div class="section-title">🎨 变体生成器（Style / Color / Size）</div>
+
+      <div class="field">
+        <label>Style（款式名称，英文）</label>
+        <input id="variantStyle" placeholder="Wide Toe Box">
+      </div>
+
+      <div class="field">
+        <label>Color（颜色，中文逗号或顿号分隔）</label>
+        <textarea id="variantColor" placeholder="杏色，黑色，酒红色" rows="2"></textarea>
+        <span class="hint">自动翻译为英文输出</span>
+      </div>
+
+      <div class="field">
+        <label>Size（中国尺码，逗号或范围如 34-45）</label>
+        <input id="variantSize" placeholder="34,35,36,37,38,39,40,41,42,43,44,45">
+        <span class="hint">自动转换为 UK / EU / mm 三列格式</span>
+      </div>
 
       <div class="btn-row">
-        <button class="btn danger" onclick="clearAll()">清空</button>
+        <button class="btn danger" onclick="clearAll()">清空全部</button>
         <button class="btn" onclick="loadExample()">加载示例</button>
       </div>
     </div>
@@ -253,18 +287,40 @@ Shoe Style: Loafers"></textarea>
     <div class="output-tabs">
       <button class="output-tab active" onclick="switchTab('html')">HTML 源码</button>
       <button class="output-tab" onclick="switchTab('preview')">预览</button>
+      <button class="output-tab" onclick="switchTab('variant')">变体文本</button>
+      <button class="output-tab" onclick="switchTab('perm')">SKU 全排列</button>
     </div>
 
+    <!-- Tab: HTML 源码 -->
     <div id="tab-html" class="output-content active">
       <div class="code-block" id="output"></div>
       <div class="copy-bar">
         <span class="status" id="copyStatus">自动生成 · 实时更新</span>
-        <button class="btn primary" onclick="copyHTML()">📋 复制 HTML</button>
+        <button class="btn primary" onclick="copyText('output')">📋 复制 HTML</button>
       </div>
     </div>
 
+    <!-- Tab: 预览 -->
     <div id="tab-preview" class="output-content">
       <iframe class="preview-frame" id="previewFrame"></iframe>
+    </div>
+
+    <!-- Tab: 变体文本 -->
+    <div id="tab-variant" class="output-content">
+      <div class="code-block" id="variantOutput"></div>
+      <div class="copy-bar">
+        <span class="status" id="variantStatus">Style / Color / Size 格式化输出</span>
+        <button class="btn primary" onclick="copyText('variantOutput')">📋 复制变体文本</button>
+      </div>
+    </div>
+
+    <!-- Tab: SKU 全排列 -->
+    <div id="tab-perm" class="output-content">
+      <div class="code-block" id="permOutput"></div>
+      <div class="copy-bar">
+        <span class="status" id="permStatus">Style-Color-Size 全排列</span>
+        <button class="btn primary" onclick="copyText('permOutput')">📋 复制排列</button>
+      </div>
     </div>
   </div>
 
@@ -273,20 +329,124 @@ Shoe Style: Loafers"></textarea>
 <div class="toast" id="toast"></div>
 
 <script>
-// --- Fixed template blocks ---
-const BEFORE_DESC = '<p><strong>What Makes This Special</strong></p>\n';
-const AFTER_DESC = '</p>\n';
+// ═══════════════════════════════════════
+// Color translation: Chinese → English
+// ═══════════════════════════════════════
+const COLOR_MAP = {
+  "紫色":"Purple","粉色":"Pink","杏色":"Apricot","黑色":"Black","卡其":"Khaki",
+  "金色":"Gold","绿色":"Green","酒红色":"Burgundy","米白色":"Cream","裸色":"Nude",
+  "香芋紫":"Lavender","棕色":"Brown","银色":"Silver","灰色":"Grey","牛仔蓝":"Denim Blue",
+  "深蓝色":"Navy","香槟色":"Champagne","白色":"White","红色":"Red","米色":"Beige",
+  "蓝色":"Blue","驼色":"Camel","卡其色":"Khaki","浅灰色":"Light Grey","深灰色":"Dark Grey",
+  "咖啡色":"Brown","巧克力色":"Chocolate","墨绿色":"Forest Green","姜黄色":"Ginger",
+  "橘色":"Orange","黄色":"Yellow","玫红色":"Rose Red","藏青色":"Navy Blue",
+  "宝蓝色":"Royal Blue","天蓝色":"Sky Blue","浅粉色":"Light Pink","荧光绿":"Neon Green",
+  "军绿色":"Army Green","焦糖色":"Caramel",
+};
 
+// ═══════════════════════════════════════
+// Size conversion: CN → UK / EU / mm
+// Formula: UK = CN - 33, EU = CN, mm = 230 + (CN - 36) * 5
+// ═══════════════════════════════════════
+function cnToSize(cn) {
+  const n = parseInt(cn);
+  if (isNaN(n) || n < 32 || n > 50) return null;
+  const uk = (n - 33).toFixed(1);
+  const eu = n;
+  const mm = 230 + (n - 36) * 5;
+  return `UK ${uk} / EU ${eu} / ${mm} mm`;
+}
+
+// ═══════════════════════════════════════
+// Parse size input: "34-45" or "34,35,36" or "34 35 36"
+// ═══════════════════════════════════════
+function parseSizes(raw) {
+  const cleaned = raw.replace(/，/g, ',').replace(/、/g, ',').replace(/\s+/g, ',').trim();
+  if (!cleaned) return [];
+  const parts = cleaned.split(',').filter(p => p);
+  const sizes = [];
+  for (const p of parts) {
+    const rangeMatch = p.match(/^(\d+)\s*-\s*(\d+)$/);
+    if (rangeMatch) {
+      const a = parseInt(rangeMatch[1]), b = parseInt(rangeMatch[2]);
+      for (let i = Math.min(a, b); i <= Math.max(a, b); i++) sizes.push(i);
+    } else {
+      const n = parseInt(p);
+      if (!isNaN(n)) sizes.push(n);
+    }
+  }
+  return [...new Set(sizes)].sort((a, b) => a - b);
+}
+
+// ═══════════════════════════════════════
+// Parse color input: "杏色，黑色，酒红色"
+// ═══════════════════════════════════════
+function parseColors(raw) {
+  return raw
+    .replace(/，/g, ',')
+    .replace(/、/g, ',')
+    .split(',')
+    .map(c => c.trim())
+    .filter(c => c)
+    .map(c => COLOR_MAP[c] || c);
+}
+
+// ═══════════════════════════════════════
+// Variant generator
+// ═══════════════════════════════════════
+function generateVariants() {
+  const style = document.getElementById('variantStyle').value.trim();
+  const colorRaw = document.getElementById('variantColor').value.trim();
+  const sizeRaw = document.getElementById('variantSize').value.trim();
+
+  const colors = parseColors(colorRaw);
+  const cnSizes = parseSizes(sizeRaw);
+  const sizes = cnSizes.map(cnToSize).filter(s => s);
+
+  // -- Variant text block --
+  let variantText = '';
+  if (style) {
+    variantText += `Style: ${style}\n\n`;
+  }
+  if (colors.length) {
+    variantText += `Color : ${colors.join('，')}\n\n`;
+  }
+  if (sizes.length) {
+    variantText += `Size :\n${sizes.join('\n')}\n`;
+  }
+  document.getElementById('variantOutput').textContent = variantText || '（请填入 Style / Color / Size）';
+
+  // -- Permutations --
+  let permText = '';
+  if (style && colors.length && sizes.length) {
+    const lines = [];
+    for (const color of colors) {
+      for (const size of sizes) {
+        lines.push(`${style} - ${color} - ${size}`);
+      }
+    }
+    permText = lines.join('\n');
+  } else {
+    permText = '（请同时填入 Style、Color、Size 以生成全排列）';
+  }
+  document.getElementById('permOutput').textContent = permText;
+  document.getElementById('permStatus').textContent = 
+    (style && colors.length && sizes.length) 
+      ? `共 ${colors.length * sizes.length} 条排列` 
+      : 'Style-Color-Size 全排列';
+}
+
+// ═══════════════════════════════════════
+// Rich text generator (7-block template)
+// ═══════════════════════════════════════
+const BEFORE_DESC = '<p><strong>What Makes This Special</strong></p>\n';
 const BEFORE_SELLS = '\n<p><strong>The Reasons to Choose It</strong></p>\n<ul>\n';
 const AFTER_SELLS = '</ul>\n';
-
 const BLOCK_CRAFTED = '\n<p><strong>Crafted Details Up Close</strong></p>\n';
 const BLOCK_VISUAL = '\n<p><strong>Visual Experience</strong></p>\n';
 const BLOCK_EXPLORE = '\n<p><strong>Explore Your Options</strong></p>\n';
-
 const BEFORE_SPECS = '\n<p><strong>Key Specifications</strong></p>\n<ul>\n';
 const AFTER_SPECS = '</ul>\n';
-
 const BLOCK_LOVED = '\n<p><strong><span class="title-text">Loved by Our Customers</span></strong></p>\n';
 const BLOCK_INSPIRE = '\n<p><strong><span>Designed to Inspire Spaces</span></strong></p>\n';
 
@@ -302,7 +462,7 @@ function makeImg() {
   return `<p><img style="max-width: 100%;" src="" width="600" /></p>\n`;
 }
 
-function generate() {
+function generateRichText() {
   const desc = document.getElementById('desc').value.trim();
   const sellsRaw = document.getElementById('sells').value.trim();
   const specsRaw = document.getElementById('specs').value.trim();
@@ -359,27 +519,43 @@ function generate() {
       ul { padding-left: 20px; }
       li { margin-bottom: 6px; }
       strong { font-size: 16px; display: block; margin: 24px 0 8px; }
-      .title-text { }
-      .p1 { }
     </style></head><body>${html}</body></html>
   `);
   previewDoc.close();
 }
 
+// ═══════════════════════════════════════
+// Master generate — call both
+// ═══════════════════════════════════════
+function generate() {
+  generateRichText();
+  generateVariants();
+}
+
+// ═══════════════════════════════════════
+// Tab switching
+// ═══════════════════════════════════════
+const TAB_ORDER = ['html', 'preview', 'variant', 'perm'];
+
 function switchTab(tab) {
   document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.output-content').forEach(c => c.classList.remove('active'));
-  document.querySelector(`.output-tab:nth-child(${tab === 'html' ? 1 : 2})`).classList.add('active');
-  document.getElementById(`tab-${tab}`).classList.add('active');
-  if (tab === 'preview') generate();
+  const idx = TAB_ORDER.indexOf(tab);
+  if (idx >= 0) {
+    document.querySelectorAll('.output-tab')[idx].classList.add('active');
+  }
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'preview') generateRichText();
 }
 
-function copyHTML() {
-  const text = document.getElementById('output').textContent;
+// ═══════════════════════════════════════
+// Copy helpers
+// ═══════════════════════════════════════
+function copyText(elementId) {
+  const el = document.getElementById(elementId);
+  const text = el.textContent;
   navigator.clipboard.writeText(text).then(() => {
-    showToast('✅ HTML 已复制到剪贴板');
-    document.getElementById('copyStatus').innerHTML = '<span class="copied">已复制 ✓</span>';
-    setTimeout(() => { document.getElementById('copyStatus').textContent = '自动生成 · 实时更新'; }, 2000);
+    showToast('✅ 已复制到剪贴板');
   });
 }
 
@@ -387,26 +563,37 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2000);
+  setTimeout(() => t.classList.remove('show'), 1800);
 }
 
+// ═══════════════════════════════════════
+// Clear / load example
+// ═══════════════════════════════════════
 function clearAll() {
   document.getElementById('desc').value = '';
   document.getElementById('sells').value = '';
   document.getElementById('specs').value = '';
+  document.getElementById('variantStyle').value = '';
+  document.getElementById('variantColor').value = '';
+  document.getElementById('variantSize').value = '';
   generate();
-  showToast('已清空');
+  showToast('已清空全部');
 }
 
 function loadExample() {
   document.getElementById('desc').value = "These minimalist flat shoes combine a sleek square-toe silhouette with a soft structured upper for a refined everyday look. Designed with a flexible slip-on construction and lightweight comfort sole, they provide lasting support for commuting, office wear, travel, and casual styling. The gathered heel detail enhances fit while adding a modern fashion touch.";
   document.getElementById('sells').value = "Minimalist Elegance: Clean square-toe styling creates a modern and versatile look.\nSoft Comfort Fit: Flexible slip-on structure offers lightweight all-day comfort.\nSecure Heel Design: Gathered heel construction improves fit and walking stability.\nEveryday Versatility: Perfect for commuting, office wear, travel, and casual outfits.";
   document.getElementById('specs').value = "Heel Style: Flat\nSole Material: Rubber\nLining Material: Leather\nToe Style: Square Toe\nUpper Material: Leather\nStyle: Vintage\nShoe Style: Loafers";
+  document.getElementById('variantStyle').value = 'Wide Toe Box';
+  document.getElementById('variantColor').value = '杏色，黑色';
+  document.getElementById('variantSize').value = '34-45';
   generate();
   showToast('已加载示例数据');
 }
 
+// ═══════════════════════════════════════
 // Auto-generate on input (debounced)
+// ═══════════════════════════════════════
 let debounceTimer;
 document.querySelectorAll('textarea, input').forEach(el => {
   el.addEventListener('input', () => {
@@ -416,7 +603,7 @@ document.querySelectorAll('textarea, input').forEach(el => {
 });
 
 // Initial
-generate();
+loadExample();
 </script>
 
 </body>
